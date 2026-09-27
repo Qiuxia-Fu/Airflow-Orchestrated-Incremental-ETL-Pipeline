@@ -1,8 +1,14 @@
 import json
+import os
 from datetime import date
 from pathlib import Path
 
 import pandas as pd
+from dotenv import load_dotenv
+from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+load_dotenv()
 
 RAW_SOURCE_DIR = Path("raw_source")
 LANDING_DIR = Path("landing")
@@ -74,6 +80,27 @@ def load(df: pd.DataFrame, pending_dates: list[date]) -> Path:
     return out_path
 
 
+def get_engine():
+    url = (
+        f"postgresql+psycopg2://{os.environ['DB_USER']}:{os.environ['DB_PASSWORD']}"
+        f"@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{os.environ['DB_NAME']}"
+    )
+    return create_engine(url)
+
+
+def load_to_db(df: pd.DataFrame) -> int:
+    engine = get_engine()
+    metadata = MetaData(schema="raw")
+    table = Table("raw_orders_incremental", metadata, autoload_with=engine)
+
+    records = df.to_dict(orient="records")
+    with engine.begin() as conn:
+        stmt = pg_insert(table).values(records)
+        stmt = stmt.on_conflict_do_nothing(index_elements=["order_id"])
+        result = conn.execute(stmt)
+    return result.rowcount
+
+
 def main():
     watermark = read_watermark()
     print(f"Current watermark: {watermark}")
@@ -98,6 +125,9 @@ def main():
 
     out_path = load(df, pending_dates)
     print(f"Wrote into landing file: {out_path}")
+
+    inserted = load_to_db(df)
+    print(f"Inserted {inserted} new records into raw.raw_orders_incremental")
 
     write_watermark(pending_dates[-1])
     print(f"watermark updated: {pending_dates[-1]}")

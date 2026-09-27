@@ -59,9 +59,11 @@ def daily_incremental_etl():
         load(df, pending_dates)
         write_watermark(pending_dates[-1])
 
+    DBT_PROJECT_DIR = "/Users/qiuxiafu/Olist ETL Pipeline/airflow-daily-etl/dbt"
+
     dbt_run = BashOperator(
         task_id="dbt_run",
-        bash_command="echo 'dbt run 占位符，等 dbt 项目接进来之后换成真的 dbt run'",
+        bash_command=f'cd "{DBT_PROJECT_DIR}" && dbt run --select stg_orders_incremental',
     )
 
     batch = extract_task()

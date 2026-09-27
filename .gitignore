@@ -7,4 +7,5 @@ data/
 raw_source/
 airflow_venv/
 airflow_home/
+dbt/
 EOF
