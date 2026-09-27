@@ -7,7 +7,7 @@ import pandas as pd
 import pendulum
 from airflow.sdk import dag, task
 from airflow.providers.standard.operators.bash import BashOperator
-from airflow.exceptions import AirflowSkipException
+from airflow.sdk.exceptions import AirflowSkipException
 
 from extract.extract_incremental import (
     read_watermark,
@@ -16,6 +16,7 @@ from extract.extract_incremental import (
     extract,
     validate,
     load,
+    load_to_db,
 )
 
 
@@ -57,9 +58,12 @@ def daily_incremental_etl():
         df = pd.read_csv(batch["staging_path"])
         pending_dates = [date.fromisoformat(s) for s in batch["dates"]]
         load(df, pending_dates)
+        inserted = load_to_db(df)
+        print(
+            f"Inserted {inserted} new records into raw.raw_orders_incremental")
         write_watermark(pending_dates[-1])
 
-    DBT_PROJECT_DIR = "/Users/qiuxiafu/Olist ETL Pipeline/airflow-daily-etl/dbt"
+    DBT_PROJECT_DIR = "/opt/airflow/dbt"
 
     dbt_run = BashOperator(
         task_id="dbt_run",
