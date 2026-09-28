@@ -8,9 +8,13 @@ This project extends the [Olist E-Commerce Data Warehouse](https://github.com/Qi
 
 ## Architecture
 raw_source/*.csv (daily files)
+
 -> extract_task (watermark-based incremental read)
+
 -> validate_task (schema / null / duplicate checks)
+
 -> load_task (idempotent PostgreSQL write, ON CONFLICT DO NOTHING)
+
 -> dbt_run (staging model + dbt tests)
 
 Orchestrated by an Apache Airflow DAG (daily schedule, automatic retries). All four tasks run inside Docker containers (Airflow + PostgreSQL), managed by Docker Compose.
