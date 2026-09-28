@@ -6,7 +6,6 @@ A production-style, incremental ETL pipeline that extracts daily e-commerce orde
 
 This project extends the [Olist E-Commerce Data Warehouse](https://github.com/Qiuxia-Fu/Olist-E-Commerce-Order-Data-Warehouse) (a dbt-based dimensional warehouse) by adding orchestration, incremental processing, and automated testing on top of it — moving from a one-off batch load to an end-to-end, production-style workflow.
 
----
 ## Architecture
 raw_source/*.csv (daily files)
 |
@@ -19,7 +18,6 @@ v
 (Apache Airflow DAG - daily schedule, automatic retries)
 All four tasks run inside Docker containers (Airflow + PostgreSQL), managed by Docker Compose.
 
----
 ## Key design decisions
 
 **Incremental extraction with a watermark.** Instead of reprocessing the full dataset every run, the pipeline tracks the last successfully extracted date in a watermark file and only pulls data newer than that — the same pattern used by most production CDC/batch pipelines.
@@ -30,7 +28,6 @@ All four tasks run inside Docker containers (Airflow + PostgreSQL), managed by D
 
 **Containerized for reproducibility.** Airflow and PostgreSQL both run in Docker via Docker Compose, with dbt's `profiles.yml` reading credentials from environment variables (`env_var()`) rather than a machine-level config file — so the whole stack spins up identically on any machine, or in CI, with a single `docker-compose up`.
 
----
 ## CI/CD
 
 Every pull request automatically runs two parallel GitHub Actions jobs:
@@ -40,12 +37,10 @@ Every pull request automatically runs two parallel GitHub Actions jobs:
 
 This catches both logic bugs (Python) and data-quality regressions (SQL/dbt) before anything merges to `main`.
 
----
 ## Tech stack
 
 Apache Airflow · PostgreSQL · dbt · Docker & Docker Compose · pandas · SQLAlchemy · pytest · GitHub Actions
 
----
 ## Project structure
 airflow-daily-etl/
 ├── dags/ # Airflow DAG definition
@@ -57,7 +52,6 @@ airflow-daily-etl/
 ├── Dockerfile
 └── docker-compose.yml
 
----
 ## Running locally
 
 ```bash
