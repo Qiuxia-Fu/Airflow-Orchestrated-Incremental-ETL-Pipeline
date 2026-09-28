@@ -23,3 +23,52 @@ jobs:
 
       - name: Run tests
         run: pytest
+
+  dbt:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_pass
+          POSTGRES_DB: ci_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install dbt-postgres
+
+      - name: Load schema and sample data
+        env:
+          PGPASSWORD: ci_pass
+        run: |
+          psql -h localhost -U ci_user -d ci_db -f docker/init.sql
+          psql -h localhost -U ci_user -d ci_db -f docker/ci_sample_data.sql
+
+      - name: Run dbt build
+        working-directory: dbt
+        env:
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          DB_USER: ci_user
+          DB_PASSWORD: ci_pass
+          DB_NAME: ci_db
+          DBT_PROFILES_DIR: .
+        run: dbt build --select stg_orders_incremental
